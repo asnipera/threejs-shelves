@@ -169,7 +169,6 @@ function render() {
 }
 
 const settings = {
-  colunmCount: 3,
   colCount: 3,
   rowCount: 2,
   realWidth: 0,
@@ -182,10 +181,12 @@ function createPanel() {
   });
   panel.add(settings, "rowCount").onChange((count: number) => {
     removeBox();
+    settings.rowCount = count;
     drawShelves(count, settings.colCount);
   });
-  panel.add(settings, "colunmCount").onChange((count: number) => {
+  panel.add(settings, "colCount").onChange((count: number) => {
     removeBox();
+    settings.colCount = count;
     drawShelves(settings.rowCount, count);
   });
 }
