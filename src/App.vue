@@ -92,7 +92,7 @@ function init() {
   renderer.setClearColor(0xffffff);
   container?.appendChild(renderer.domElement);
   const controls = new OrbitControls(camera, renderer.domElement);
-  window.addEventListener("click", onWindowClick);
+  window.addEventListener("mousemove", onWindowClick);
 }
 
 function removeBox() {
@@ -102,6 +102,8 @@ function removeBox() {
     }
   });
 }
+
+const boxHelpers: Record<string, THREE.BoxHelper>[] = [];
 
 function drawShelves(
   rowCount: number,
@@ -129,6 +131,12 @@ function drawShelves(
         (i + 0.5 - 0.5 * colCount) * realWidth
       );
       box.userData.id = `${i}-${j}`;
+      const boxHelper = new THREE.BoxHelper(box, 0x00ffff);
+      // boxHelpers.push(new THREE.BoxHelper(box, 0x000000));
+      boxHelpers.push({
+        [box.userData.id]: box,
+      });
+
       scene.add(box);
     }
   }
@@ -139,7 +147,7 @@ function getContainerObjByChild(obj: any) {
   else if (obj.parent != null) return getContainerObjByChild(obj.parent);
   else return null;
 }
-
+const bHelper = new THREE.BoxHelper(new THREE.Mesh(), 0x00ffff);
 function onWindowClick(event: any) {
   const pointer = new THREE.Vector2();
   pointer.set(
@@ -154,6 +162,15 @@ function onWindowClick(event: any) {
     const intersectedObj = getContainerObjByChild(intersects[0].object);
     if (intersectedObj) {
       console.log(intersectedObj.userData);
+      const id = intersectedObj.userData.id;
+      if (id) {
+        const boxHelper = boxHelpers.find((helper) => helper[id]);
+        if (boxHelper) {
+          const box = boxHelper[id];
+          const helper = bHelper.setFromObject(box);
+          scene.add(helper);
+        }
+      }
     }
   }
 }
