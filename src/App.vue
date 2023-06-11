@@ -1,5 +1,4 @@
 <template>
-  <button @click="removeBox">remove</button>
   <div id="container"></div>
 </template>
 
@@ -13,40 +12,56 @@ import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
 let renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
   camera: THREE.PerspectiveCamera;
-const objects: any[] = [];
 onMounted(() => {
   init();
   animate();
 });
+
 function init() {
   const container = document.getElementById("container");
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xffffff);
+  scene.background = new THREE.Color(0xd0d0d1);
+  scene.fog = new THREE.Fog(0xa0a0a0, 1, 1000);
   camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
-    0.1,
+    10,
     1000
   );
-  camera.position.set(60, 40, -20);
+  camera.position.set(90, 75, 50);
   camera.lookAt(0, 0, 0);
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(30, 40, 40);
-  scene.add(directionalLight);
-  directionalLight.castShadow = true;
-  directionalLight.shadow.camera.near = 2.1;
-  directionalLight.shadow.camera.far = 300;
-  directionalLight.shadow.camera.left = -50;
-  directionalLight.shadow.camera.right = 150;
-  directionalLight.shadow.camera.top = 100;
-  // Create an ambient light
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
-  ambientLight.position.set(20, 20, 20);
 
-  scene.add(ambientLight);
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0xc6c7c7, 0.4);
+  // hemiLight.groundColor = new THREE.Color(0xeaeaea);
+  hemiLight.position.set(35, 60, -10);
+  scene.add(hemiLight);
+  // const helper1 = new THREE.HemisphereLightHelper(hemiLight, 5);
+  // helper1.visible = false;
+  // scene.add(helper1);
+  //
+
+  const dirLight = new THREE.DirectionalLight(0xffffff);
+  dirLight.color.setHSL(0.1, 1, 0.95);
+  dirLight.position.set(50, 100, 5);
+  // dirLight.position.multiplyScalar(30);
+  scene.add(dirLight);
+  dirLight.castShadow = true;
+
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  // const helper2 = new THREE.DirectionalLightHelper(dirLight, 15, 0xff0000);
+  const helper2 = new THREE.DirectionalLightHelper(dirLight, 5, 0xff0000);
+  helper2.visible = false;
+  scene.add(helper2);
+  const d = 50;
+
+  dirLight.shadow.camera.left = -d;
+  dirLight.shadow.camera.right = d;
+  dirLight.shadow.camera.top = d;
+
   const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
   const planeMaterial = new THREE.MeshLambertMaterial({
-    color: 0xffffff,
+    color: 0x4f4f50,
     side: THREE.DoubleSide,
   });
   const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -61,9 +76,13 @@ function init() {
   loader.load("/box/scene.gltf", function (gltf) {
     gltf.scene.userData.isContainer = true;
     gltf.scene.traverse(function (child) {
-      if (child.type === "Mesh") {
+      if (
+        child.type === "Mesh" &&
+        !child.name.includes("KALLAX__42x42_KALLAX_SCREW_0") &&
+        !child.name.includes("KALLAX__42x42_KALLAX_SCREW_HOLE_0")
+      ) {
         (child as any).material = new THREE.MeshLambertMaterial({
-          color: 0xb1753d,
+          color: 0xffffff,
           side: THREE.FrontSide,
         });
         child.castShadow = true;
@@ -71,7 +90,7 @@ function init() {
       }
     });
     var box = new THREE.Box3().setFromObject(gltf.scene);
-    const scale = 20;
+    const scale = 40;
     var width = box.max.x - box.min.x;
     var height = box.max.y - box.min.y;
     gltf.scene.scale.set(scale, scale, scale);
@@ -84,8 +103,15 @@ function init() {
       realWidth,
       realHeight
     );
+    // scene.add(gltf.scene);
   });
-  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer = new THREE.WebGLRenderer({
+    logarithmicDepthBuffer: true,
+    antialias: true, // true/false表示是否开启反锯齿
+    alpha: true, // true/false 表示是否可以设置背景色透明
+    precision: "mediump", // highp/mediump/lowp 表示着色精度选择
+    premultipliedAlpha: true, // true/false 表示是否可以设置像素深度（用来度量图像的分辨率）
+  });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
@@ -96,7 +122,7 @@ function init() {
 }
 
 function removeBox() {
-  [...scene.children].forEach((obj, index) => {
+  [...scene.children].forEach((obj) => {
     if (obj.userData.isContainer) {
       scene.remove(obj);
     }
@@ -131,7 +157,6 @@ function drawShelves(
         (i + 0.5 - 0.5 * colCount) * realWidth
       );
       box.userData.id = `${i}-${j}`;
-      const boxHelper = new THREE.BoxHelper(box, 0x00ffff);
       // boxHelpers.push(new THREE.BoxHelper(box, 0x000000));
       boxHelpers.push({
         [box.userData.id]: box,
@@ -170,6 +195,8 @@ function onWindowClick(event: any) {
           const helper = bHelper.setFromObject(box);
           scene.add(helper);
         }
+      } else {
+        scene.remove(bHelper);
       }
     }
   }
@@ -177,7 +204,7 @@ function onWindowClick(event: any) {
 
 function animate() {
   requestAnimationFrame(animate);
-
+  // composer.render();
   render();
 }
 
@@ -186,8 +213,8 @@ function render() {
 }
 
 const settings = {
-  colCount: 3,
-  rowCount: 2,
+  rowCount: 3,
+  colCount: 6,
   realWidth: 0,
   realHeight: 0,
   gltf: null,
