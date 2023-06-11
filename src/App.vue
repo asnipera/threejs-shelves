@@ -1,4 +1,5 @@
 <template>
+  <button @click="removeBox">remove</button>
   <div id="container"></div>
 </template>
 
@@ -7,6 +8,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { onMounted } from "vue";
+import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
+
 let renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
   camera: THREE.PerspectiveCamera;
@@ -74,31 +77,13 @@ function init() {
     gltf.scene.scale.set(scale, scale, scale);
     const realWidth = width * scale;
     const realHeight = height * scale;
-    // 获取中间数, 5得到3,6得到0
-    function getMiddleNumber(count: number) {
-      if (count === 1) {
-        return 0;
-      }
-      // 余数
-      const remainder = count % 2;
-      if (remainder === 0) {
-        return (count - 1) / 2;
-      }
-      return Math.floor(count / 2);
-    }
-    function drawShelves(rowCount: number, colCount: number) {
-      const middle = getMiddleNumber(rowCount);
-      for (let i = 0; i < rowCount; i++) {
-        let z = realWidth * (i - middle);
-        for (let j = 0; j < colCount; j++) {
-          const box = gltf.scene.clone();
-          box.position.set(0, realHeight * j, z);
-          box.userData.id = `${i}-${j}`;
-          scene.add(box);
-        }
-      }
-    }
-    drawShelves(6, 3);
+    drawShelves(
+      settings.rowCount,
+      settings.colCount,
+      gltf,
+      realWidth,
+      realHeight
+    );
   });
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -110,7 +95,46 @@ function init() {
   window.addEventListener("click", onWindowClick);
 }
 
-function getContainerObjByChild(obj) {
+function removeBox() {
+  [...scene.children].forEach((obj, index) => {
+    if (obj.userData.isContainer) {
+      scene.remove(obj);
+    }
+  });
+}
+
+function drawShelves(
+  rowCount: number,
+  colCount: number,
+  gltf?: any,
+  realWidth?: number,
+  realHeight?: number
+) {
+  if (gltf && realWidth && realHeight) {
+    settings.rowCount = rowCount;
+    settings.colCount = colCount;
+    settings.gltf = gltf;
+    settings.realWidth = realWidth;
+    settings.realHeight = realHeight;
+  }
+  realWidth = realWidth ?? settings.realWidth;
+  realHeight = realHeight ?? settings.realHeight;
+  gltf = gltf ?? settings.gltf;
+  for (let i = 0; i < colCount; i++) {
+    for (let j = 0; j < rowCount; j++) {
+      const box = gltf.scene.clone();
+      box.position.set(
+        0,
+        realHeight * j,
+        (i + 0.5 - 0.5 * colCount) * realWidth
+      );
+      box.userData.id = `${i}-${j}`;
+      scene.add(box);
+    }
+  }
+}
+
+function getContainerObjByChild(obj: any) {
   if (obj.userData.isContainer) return obj;
   else if (obj.parent != null) return getContainerObjByChild(obj.parent);
   else return null;
@@ -143,6 +167,29 @@ function animate() {
 function render() {
   renderer.render(scene, camera);
 }
+
+const settings = {
+  colunmCount: 3,
+  colCount: 3,
+  rowCount: 2,
+  realWidth: 0,
+  realHeight: 0,
+  gltf: null,
+};
+function createPanel() {
+  const panel = new GUI({
+    width: 310,
+  });
+  panel.add(settings, "rowCount").onChange((count: number) => {
+    removeBox();
+    drawShelves(count, settings.colCount);
+  });
+  panel.add(settings, "colunmCount").onChange((count: number) => {
+    removeBox();
+    drawShelves(settings.rowCount, count);
+  });
+}
+createPanel();
 </script>
 
 <style>
