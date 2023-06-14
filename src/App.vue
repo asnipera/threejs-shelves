@@ -1,4 +1,5 @@
 <template>
+  <div class="shelve-title">架子ID：{{ currentShelveId }}</div>
   <div id="container"></div>
 </template>
 
@@ -8,10 +9,13 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { onMounted } from "vue";
 import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
+import { ref } from "vue";
 
 let renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
   camera: THREE.PerspectiveCamera;
+const currentShelveId = ref();
+
 onMounted(() => {
   init();
   animate();
@@ -28,11 +32,11 @@ function init() {
     10,
     1000
   );
-  camera.position.set(90, 75, 50);
+  camera.position.set(80, 60, 40);
   camera.lookAt(0, 0, 0);
 
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0xc6c7c7, 0.4);
-  // hemiLight.groundColor = new THREE.Color(0xeaeaea);
+  hemiLight.groundColor = new THREE.Color(0xeaeaea);
   hemiLight.position.set(35, 60, -10);
   scene.add(hemiLight);
   // const helper1 = new THREE.HemisphereLightHelper(hemiLight, 5);
@@ -60,11 +64,13 @@ function init() {
   dirLight.shadow.camera.top = d;
 
   const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
+  planeGeometry.name = "xxx";
   const planeMaterial = new THREE.MeshLambertMaterial({
     color: 0x4f4f50,
     side: THREE.DoubleSide,
   });
   const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+  planeMesh.name = "floor";
   planeMesh.receiveShadow = true;
   planeMesh.rotation.x = Math.PI / 2;
   scene.add(planeMesh);
@@ -75,6 +81,7 @@ function init() {
   const loader = new GLTFLoader();
   loader.load("/box/scene.gltf", function (gltf) {
     gltf.scene.userData.isContainer = true;
+    gltf.userData.xxx = true;
     gltf.scene.traverse(function (child) {
       if (
         child.type === "Mesh" &&
@@ -129,7 +136,7 @@ function removeBox() {
   });
 }
 
-const boxHelpers: Record<string, THREE.BoxHelper>[] = [];
+let boxHelpers: Record<string, THREE.BoxHelper>[] = [];
 
 function drawShelves(
   rowCount: number,
@@ -148,6 +155,7 @@ function drawShelves(
   realWidth = realWidth ?? settings.realWidth;
   realHeight = realHeight ?? settings.realHeight;
   gltf = gltf ?? settings.gltf;
+  boxHelpers = [];
   for (let i = 0; i < colCount; i++) {
     for (let j = 0; j < rowCount; j++) {
       const box = gltf.scene.clone();
@@ -186,9 +194,9 @@ function onWindowClick(event: any) {
   if (intersects && intersects.length > 0) {
     const intersectedObj = getContainerObjByChild(intersects[0].object);
     if (intersectedObj) {
-      console.log(intersectedObj.userData);
       const id = intersectedObj.userData.id;
       if (id) {
+        currentShelveId.value = id;
         const boxHelper = boxHelpers.find((helper) => helper[id]);
         if (boxHelper) {
           const box = boxHelper[id];
@@ -244,5 +252,19 @@ html {
 }
 canvas {
   display: block;
+}
+.shelve-title {
+  position: absolute;
+  top: 50px;
+  left: 50px;
+  z-index: 100;
+  background: #fff;
+  padding: 20px;
+  font-size: 26px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #000;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
 }
 </style>
