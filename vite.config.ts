@@ -1,11 +1,12 @@
-import { defineConfig } from "vite";
+import { ConfigEnv, defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  base: "/threejs-shelves/",
-  plugins: [vue()],
-  build: {
-    outDir: "./docs",
-  },
-});
+export default ({ mode }: ConfigEnv) => {
+  return defineConfig({
+    base: mode === "development" ? "" : "/font-share/",
+    plugins: [vue()],
+    build: {
+      outDir: "./docs",
+    },
+  });
+};
