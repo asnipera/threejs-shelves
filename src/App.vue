@@ -79,7 +79,7 @@ function init() {
   const axisHelper = new THREE.AxesHelper(1000);
   scene.add(axisHelper);
   const loader = new GLTFLoader();
-  loader.load("/box/scene.gltf", function (gltf) {
+  loader.load(import.meta.env.BASE_URL + "box/scene.gltf", function (gltf) {
     gltf.scene.userData.isContainer = true;
     gltf.userData.xxx = true;
     gltf.scene.traverse(function (child) {
